@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Générateur QR Cœur</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --blush: #F7E6E0;
+    --berry: #7A2048;
+    --berry-dark: #4A1230;
+    --gold: #C9975C;
+    --ink: #2B1B1F;
+    --paper: #FFFCFA;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:linear-gradient(160deg, var(--berry-dark) 0%, var(--berry) 55%, #9c3a63 100%);
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    color: var(--ink);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 40px 16px 80px;
+  }
+  .wrap{
+    width:100%;
+    max-width:920px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 760px){
+    .wrap{grid-template-columns: 1fr;}
+  }
+  .panel{
+    background: var(--paper);
+    border-radius: 18px;
+    padding: 28px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  }
+  h1{
+    font-size: 1.5rem;
+    margin: 0 0 4px;
+    color: var(--berry-dark);
+    letter-spacing: .02em;
+  }
+  .sub{
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: .82rem;
+    color: #8a6b6b;
+    margin: 0 0 24px;
+  }
+  label{
+    display:block;
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--berry);
+    margin: 16px 0 6px;
+  }
+  input[type=text], input[type=url]{
+    width:100%;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1.5px solid #e6d3d3;
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: .95rem;
+    background: #fffaf8;
+    color: var(--ink);
+  }
+  input:focus{ outline: 2px solid var(--gold); border-color: var(--gold); }
+  button{
+    margin-top: 22px;
+    width:100%;
+    padding: 13px;
+    border:none;
+    border-radius: 10px;
+    background: var(--berry);
+    color: #fff;
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: .95rem;
+    font-weight:600;
+    letter-spacing:.03em;
+    cursor:pointer;
+    transition: background .2s ease, transform .15s ease;
+  }
+  button:hover{ background: var(--berry-dark); transform: translateY(-1px); }
+  button.secondary{
+    background: transparent;
+    border: 1.5px solid var(--berry);
+    color: var(--berry);
+    margin-top: 10px;
+  }
+  button.secondary:hover{ background: rgba(122,32,72,.06); }
+  .preview{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  canvas{
+    max-width: 100%;
+    border-radius: 14px;
+    box-shadow: 0 10px 24px rgba(0,0,0,.18);
+  }
+  #qrHidden{ position:absolute; left:-9999px; top:-9999px; }
+  .hint{
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    font-size: .74rem;
+    color: #a98686;
+    margin-top: 14px;
+    line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h1>QR Cœur</h1>
+    <p class="sub">Crée un QR code caché dans un cœur, à scanner.</p>
+
+    <label>Lien à ouvrir au scan</label>
+    <input type="url" id="link" placeholder="https://ta-page-surprise.com" value="https://example.com">
+
+    <label>Texte du haut</label>
+    <input type="text" id="topText" value="I love you">
+
+    <label>Texte du bas</label>
+    <input type="text" id="bottomText" value="Scan bby">
+
+    <button id="generate">Générer le cœur</button>
+    <button class="secondary" id="download">Télécharger en PNG</button>
+
+    <p class="hint">Le cœur est décoratif : seul le carré QR au centre est scanné.
+    Teste toujours avec ton téléphone avant de l'envoyer — si ça ne scanne pas,
+    régénère (le bruit autour du QR est aléatoire à chaque clic).</p>
+  </div>
+
+  <div class="panel preview">
+    <canvas id="canvas" width="500" height="640"></canvas>
+    <div id="qrHidden"></div>
+  </div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let qrCanvasEl = null;
+
+function isInsideHeart(nx, ny){
+  // nx, ny in [-1.2, 1.2], heart pointing down, apex at bottom
+  const x = nx;
+  const y = -ny; // flip so heart sits right-side up
+  const val = Math.pow(x*x + y*y - 1, 3) - x*x*y*y*y;
+  return val <= 0;
+}
+
+const COLOR_DARK = '#1a0d12';
+const COLOR_LIGHT = '#f0e2e6';
+
+function makeQR(link){
+  return new Promise((resolve) => {
+    const holder = document.getElementById('qrHidden');
+    holder.innerHTML = '';
+    new QRCode(holder, {
+      text: link,
+      width: 220,
+      height: 220,
+      colorDark: COLOR_DARK,
+      colorLight: COLOR_LIGHT,
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    setTimeout(() => {
+      const c = holder.querySelector('canvas');
+      const img = holder.querySelector('img');
+      resolve(c || img);
+    }, 120);
+  });
+}
+
+async function draw(){
+  const link = document.getElementById('link').value || 'https://example.com';
+  const topText = document.getElementById('topText').value;
+  const bottomText = document.getElementById('bottomText').value;
+
+  const qrEl = await makeQR(link);
+
+  ctx.clearRect(0,0,canvas.width, canvas.height);
+
+  // background — same light tone as the QR's light modules
+  ctx.fillStyle = COLOR_LIGHT;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // top label pill
+  ctx.save();
+  ctx.font = 'bold 34px Georgia, serif';
+  ctx.textAlign = 'center';
+  const textWidth = ctx.measureText(topText).width;
+  const padX = 30, padY = 16;
+  const pillW = textWidth + padX*2, pillH = 60;
+  const pillX = canvas.width/2 - pillW/2, pillY = 30;
+  ctx.fillStyle = COLOR_LIGHT;
+  roundRect(ctx, pillX, pillY, pillW, pillH, 14);
+  ctx.fill();
+  ctx.fillStyle = COLOR_DARK;
+  ctx.fillText(topText, canvas.width/2, pillY + pillH/2 + 12);
+  ctx.restore();
+
+  // heart noise field
+  const heartTop = 130;
+  const heartSize = 380; // drawing box
+  const cell = 7;
+  const cols = Math.floor(heartSize/cell);
+  const rows = cols;
+  const boxX = canvas.width/2 - heartSize/2;
+  const boxY = heartTop;
+
+  // reserve the QR's footprint (with a small quiet-zone margin) so the
+  // noise doesn't collide with the modules — this is what lets the QR
+  // read as "part of" the heart instead of a sticker on top of it
+  const qrSize = 210;
+  const qrMargin = 14;
+  const qrX = canvas.width/2 - qrSize/2;
+  const qrY = boxY + heartSize/2 - qrSize/2 + 10;
+
+  for(let iy=0; iy<rows; iy++){
+    for(let ix=0; ix<cols; ix++){
+      const nx = (ix/cols)*2.4 - 1.2;
+      const ny = (iy/rows)*2.4 - 1.2;
+      if(!isInsideHeart(nx, ny)) continue;
+      const px = boxX + ix*cell;
+      const py = boxY + iy*cell;
+
+      // skip cells that fall inside the QR's quiet zone
+      if(px+cell > qrX-qrMargin && px < qrX+qrSize+qrMargin &&
+         py+cell > qrY-qrMargin && py < qrY+qrSize+qrMargin){
+        continue;
+      }
+
+      // only ever the two QR colors, so the whole graphic reads as one palette
+      ctx.fillStyle = Math.random() > 0.42 ? COLOR_DARK : COLOR_LIGHT;
+      ctx.fillRect(px, py, cell-1, cell-1);
+    }
+  }
+
+  // QR sits directly on the shared light background — no separate white card
+  ctx.drawImage(qrEl, qrX, qrY, qrSize, qrSize);
+
+  // bottom text
+  ctx.font = '600 26px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = COLOR_DARK;
+  ctx.fillText(bottomText, canvas.width/2, boxY + heartSize + 46);
+}
+
+function roundRect(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+document.getElementById('generate').addEventListener('click', draw);
+document.getElementById('download').addEventListener('click', () => {
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'qr-coeur.png';
+  a.click();
+});
+
+draw();
+</script>
+
+</body>
+</html>

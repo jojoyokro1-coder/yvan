@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pour toi</title>
+<style>
+  /* ============================================================
+     À PERSONNALISER :
+     - Change le mot dans le script tout en bas si tu veux un
+       autre texte que "I love you".
+     - Change le message dans .center-badge h1 si tu veux.
+     ============================================================ */
+  :root{
+    --blush: #F6E3E7;
+    --berry: #7A2048;
+    --berry-dark: #3E1226;
+    --gold: #C9975C;
+    --ink: #2B1B1F;
+    --paper: #FFFBF9;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html, body{ height:100%; }
+  body{
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    background: var(--berry-dark);
+    color: var(--ink);
+    overflow:hidden;
+  }
+
+  /* ===== Mur de "I love you" en défilement vertical ===== */
+  .marquee-hero{
+    position:relative;
+    width:100vw;
+    height:100vh;
+    background: radial-gradient(circle at 50% 40%, #5a1c3a 0%, var(--berry-dark) 70%);
+    overflow:hidden;
+  }
+  .tilt{
+    position:absolute;
+    top:50%; left:50%;
+    width: 130vw;
+    height: 140vh;
+    transform: translate(-50%,-50%) rotate(-8deg);
+    display:flex;
+    gap: 4px;
+  }
+  .col{
+    flex:1;
+    overflow:hidden;
+    height:100%;
+  }
+  .track{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .track span{
+    display:block;
+    padding: 10px 0;
+    white-space:nowrap;
+  }
+  .col.up .track{ animation: scrollUp linear infinite; }
+  .col.down .track{ animation: scrollDown linear infinite; }
+  @keyframes scrollUp{
+    from{ transform: translateY(0); }
+    to{ transform: translateY(-50%); }
+  }
+  @keyframes scrollDown{
+    from{ transform: translateY(-50%); }
+    to{ transform: translateY(0); }
+  }
+
+  .col1 span{ font-size: clamp(1.1rem, 2.4vw, 1.8rem); font-weight:700; color: var(--blush); font-family: -apple-system, 'Segoe UI', sans-serif; }
+  .col2 span{ font-size: clamp(1rem, 2vw, 1.5rem); font-style: italic; color: var(--gold); }
+  .col3 span{ font-size: clamp(1.3rem, 3vw, 2.2rem); font-weight:800; -webkit-text-stroke: 1.2px var(--blush); color: transparent; font-family: -apple-system, 'Segoe UI', sans-serif; }
+  .col4 span{ font-size: clamp(.95rem, 1.8vw, 1.3rem); color: rgba(246,227,231,.5); font-family: -apple-system, 'Segoe UI', sans-serif; letter-spacing:.03em; }
+  .col5 span{ font-size: clamp(1.1rem, 2.2vw, 1.6rem); font-weight:700; color: var(--berry); background: var(--blush); border-radius: 30px; padding: 4px 16px; font-family: -apple-system, 'Segoe UI', sans-serif; }
+  .col6 span{ font-size: clamp(1.1rem, 2.4vw, 1.8rem); font-weight:700; color: var(--blush); font-family: -apple-system, 'Segoe UI', sans-serif; }
+
+  /* colonne photo : mêmes cartes qui défilent dans le mur de texte */
+  .col.photos .track{ gap: 10px; }
+  .photo-card{
+    width: 92%;
+    aspect-ratio: 3/4;
+    border-radius: 10px;
+    overflow:hidden;
+    margin: 10px 0;
+    background: linear-gradient(135deg, var(--blush), #eccdd4);
+    border: 2px solid rgba(246,227,231,.5);
+    flex-shrink:0;
+  }
+  .photo-card img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-card .fallback{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    font-family: -apple-system, sans-serif;
+    font-size: .62rem;
+    color: rgba(122,32,72,.6);
+    text-align:center;
+    padding: 6px;
+  }
+
+  .center-badge{
+    position:absolute;
+    top:50%; left:50%;
+    transform: translate(-50%,-50%);
+    z-index:5;
+    text-align:center;
+    background: rgba(62,18,38,.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(246,227,231,.35);
+    border-radius: 20px;
+    padding: 26px 34px;
+    max-width: 88vw;
+  }
+  .center-badge .eyebrow{
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    font-size: .7rem;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .center-badge h1{
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    color: var(--blush);
+    line-height: 1.05;
+  }
+  .center-badge h1 em{ font-style:italic; color: var(--gold); }
+
+  .sig{
+    position:absolute;
+    bottom: 22px; left:50%; transform: translateX(-50%);
+    z-index:5;
+    font-family: -apple-system, sans-serif;
+    font-size: .72rem;
+    color: rgba(246,227,231,.6);
+  }
+  .sig em{ font-family:'Georgia', serif; font-style:italic; color: var(--gold); }
+</style>
+</head>
+<body>
+
+<section class="marquee-hero">
+  <div class="tilt">
+    <div class="col col1 up"><div class="track" id="t1"></div></div>
+    <div class="col col2 down"><div class="track" id="t2"></div></div>
+    <div class="col photos up"><div class="track" id="tphotos"></div></div>
+    <div class="col col3 up"><div class="track" id="t3"></div></div>
+    <div class="col col4 down"><div class="track" id="t4"></div></div>
+    <div class="col col5 up"><div class="track" id="t5"></div></div>
+    <div class="col col6 down"><div class="track" id="t6"></div></div>
+  </div>
+
+  <div class="center-badge">
+    <div class="eyebrow">Une petite surprise</div>
+    <h1>Pour toi, <em>mon amour</em></h1>
+  </div>
+
+  <div class="sig">Fait avec le cœur — <em>JOJO</em></div>
+</section>
+
+<script>
+  // ============================================================
+  // 📸 AJOUTE TES PHOTOS ICI
+  // Mets tes fichiers (photo1.jpg, photo2.jpg, ...) dans le même
+  // dossier que ce fichier html, puis liste-les ci-dessous.
+  // ============================================================
+  const PHOTOS = [
+    'photo1.jpg',
+    'photo2.jpg',
+    'photo3.jpg',
+    'photo4.jpg'
+  ];
+
+  // Remplit une colonne avec la phrase répétée verticalement, en boucle,
+  // et fixe une vitesse de défilement propre à chaque colonne.
+  function fillColumn(id, phrase, repeats, durationSec){
+    const track = document.getElementById(id);
+    let html = '';
+    for(let i=0;i<repeats*2;i++){ html += `<span>${phrase}</span>`; }
+    track.innerHTML = html;
+    track.style.animationDuration = durationSec + 's';
+  }
+
+  // Remplit la colonne photo avec les fichiers listés dans PHOTOS,
+  // en boucle comme les colonnes de texte.
+  function fillPhotoColumn(id, photos, durationSec){
+    const track = document.getElementById(id);
+    if(!photos.length){
+      track.parentElement.style.display = 'none';
+      return;
+    }
+    const doubled = [...photos, ...photos];
+    track.innerHTML = doubled.map(src => `
+      <div class="photo-card">
+        <img src="${src}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'fallback',textContent:'Ajoute ${src} ici'}))">
+      </div>
+    `).join('');
+    track.style.animationDuration = durationSec + 's';
+  }
+
+  fillColumn('t1', 'I love you', 16, 18);
+  fillColumn('t2', 'I love you', 14, 22);
+  fillPhotoColumn('tphotos', PHOTOS, 24);
+  fillColumn('t3', 'I LOVE YOU', 12, 16);
+  fillColumn('t4', 'i love you', 18, 26);
+  fillColumn('t5', 'I love you', 14, 20);
+  fillColumn('t6', 'I love you', 16, 24);
+</script>
+
+</body>
+</html>
